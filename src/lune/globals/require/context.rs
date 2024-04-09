@@ -14,7 +14,7 @@ use tokio::{
     },
 };
 
-use crate::lune::{builtins::LuneBuiltin, util::paths::CWD};
+use crate::lune::builtins::LuneBuiltin;
 
 /**
     Context containing cached results for all `require` operations.
@@ -43,34 +43,6 @@ impl RequireContext {
             cache_results: Arc::new(AsyncMutex::new(HashMap::new())),
             cache_pending: Arc::new(AsyncMutex::new(HashMap::new())),
         }
-    }
-
-    /**
-        Resolves the given `source` and `path` into require paths
-        to use, based on the current require context settings.
-
-        This will resolve path segments such as `./`, `../`, ..., and
-        if the resolved path is not an absolute path, will create an
-        absolute path by prepending the current working directory.
-    */
-    pub fn resolve_paths(
-        &self,
-        source: impl AsRef<str>,
-        path: impl AsRef<str>,
-    ) -> LuaResult<(PathBuf, PathBuf)> {
-        let path = PathBuf::from(source.as_ref())
-            .parent()
-            .ok_or_else(|| LuaError::runtime("Failed to get parent path of source"))?
-            .join(path.as_ref());
-
-        let rel_path = path_clean::clean(path);
-        let abs_path = if rel_path.is_absolute() {
-            rel_path.to_path_buf()
-        } else {
-            CWD.join(&rel_path)
-        };
-
-        Ok((abs_path, rel_path))
     }
 
     /**

@@ -2,6 +2,8 @@ use std::path::{Path, PathBuf};
 
 use mlua::prelude::*;
 
+use crate::lune::util::paths::CWD;
+
 use super::context::*;
 
 pub(super) async fn require<'lua, 'ctx>(
@@ -13,7 +15,18 @@ pub(super) async fn require<'lua, 'ctx>(
 where
     'lua: 'ctx,
 {
-    let (abs_path, rel_path) = ctx.resolve_paths(source, path)?;
+    let path = PathBuf::from(source)
+        .parent()
+        .ok_or_else(|| LuaError::runtime("Failed to get parent path of source"))?
+        .join(path);
+
+    let rel_path = path_clean::clean(path);
+    let abs_path = if rel_path.is_absolute() {
+        rel_path.to_path_buf()
+    } else {
+        CWD.join(&rel_path)
+    };
+
     require_abs_rel(lua, ctx, abs_path, rel_path).await
 }
 
